@@ -6,14 +6,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using System.Diagnostics;
+
 namespace Music_Maze
 {
     class EquationTriangle : IVBO
     {
-        Func<float, float, float> equation;
+        public float equationMod = 1;
+        //X, Z, equationMod : return Y
+        Func<float, float, float, float> equation;
         int depth;
 
-        Random ran;
+        Random ran = new Random();
 
         int totalVerts;
 
@@ -28,11 +32,7 @@ namespace Music_Maze
 
         Vector3[] boundingPoints;
 
-        Task calculationTask;
-
-        float timeMod = 0f;
-
-        public EquationTriangle(Vector3 corner1, Vector3 corner2, Vector3 corner3, Func<float,float,float> equation, int depth = 1)
+        public EquationTriangle(Vector3 corner1, Vector3 corner2, Vector3 corner3, Func<float,float,float,float> equation, int depth = 1)
         {
             boundingPoints = new Vector3[]{corner1, corner2, corner3};
             this.equation = equation;
@@ -44,11 +44,15 @@ namespace Music_Maze
             indices = new uint[totalVerts];
             colours = new List<Vector3>();
 
-            calculationTask = new Task(() =>
-            {
-                CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts);
-            });
-            calculationTask.RunSynchronously();
+            //calculationTask = new Task(() =>
+            //{
+            //    CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts, 1f);
+            //});
+            //calculationTask.RunSynchronously();
+
+            verticesID = GL.GenBuffer();
+            coloursID = GL.GenBuffer();
+            GL.GenBuffers(1, out indicesID);
         }
 
         public void Render(FrameEventArgs e)
@@ -64,13 +68,13 @@ namespace Music_Maze
         }
 
         //left inclusive, right exclusive
-        void CalculatePoints(ref Vector3 corner1, ref Vector3 corner2, ref Vector3 corner3, int left, int right)
+        void CalculatePoints(ref Vector3 corner1, ref Vector3 corner2, ref Vector3 corner3, int left, int right, float mod)
         {
             if(left == right-3)
             {
-                SetVertex(CalculatePoint(corner1), left);
-                SetVertex(CalculatePoint(corner2), left+1);
-                SetVertex(CalculatePoint(corner3), left+2);
+                SetVertex(corner1, mod, left);
+                SetVertex(corner2, mod, left + 1);
+                SetVertex(corner3, mod, left + 2);
             }
             else
             {
@@ -83,18 +87,20 @@ namespace Music_Maze
 
                 int mid = left + (right-left) / 2;
 
-                CalculatePoints(ref tri1, ref middle, ref median, left, mid);
-                CalculatePoints(ref tri2, ref middle, ref median, mid, right);
+                CalculatePoints(ref tri1, ref middle, ref median, left, mid, mod);
+                CalculatePoints(ref tri2, ref middle, ref median, mid, right, mod);
             }
         }
 
-        void SetVertex(Vector3 pos, int i)
+        void SetVertex(Vector3 point, float mod, int i)
         {
+            Vector3 pos = new Vector3(point.X, point.Y + equation(point.X, point.Z, mod), point.Z);
+
             uint id = (uint)vertices.IndexOf(pos);
             if(id == uint.MaxValue)
             {
                 vertices.Add(pos);
-                colours.Add(new Vector3(pos.X, 0.5f, pos.Z) * pos.Y);
+                colours.Add(new Vector3(pos.X/8f, pos.Y, pos.Z/8f) * ( mod < 0.5f ? 0.5f : mod ) );
                 id = (uint)vertices.Count - 1;
             }
 
@@ -123,25 +129,14 @@ namespace Music_Maze
             median = diff[maxI]/2 + newCorner1;
         }
 
-        Vector3 CalculatePoint(Vector3 point)
+        public void Buffer(float mod)
         {
-            return new Vector3(point.X, point.Y + equation(point.X + timeMod, point.Z + timeMod), point.Z);
-        }
+            equationMod += 0.01f;
 
-        public void Buffer()
-        {
-            timeMod += 0.01f;
+            CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts, mod);
 
-            if(calculationTask.IsCompleted)
+            //if(calculationTask.IsCompleted)
             {
-                GL.DeleteBuffer(verticesID);
-                GL.DeleteBuffer(indicesID);
-                GL.DeleteBuffer(coloursID);
-
-                verticesID = GL.GenBuffer();
-                coloursID = GL.GenBuffer();
-                GL.GenBuffers(1, out indicesID);
-
                 GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
                 GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertices.Count * Vector3.SizeInBytes), vertices.ToArray(), BufferUsageHint.DynamicDraw);
 
@@ -151,16 +146,22 @@ namespace Music_Maze
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(totalVerts * sizeof(uint)), indices.ToArray(), BufferUsageHint.DynamicDraw);
 
+                Console.SetCursorPosition(0, 1);
+                Console.Write(String.Format("Total points:  {0}", totalVerts));
+
+                Console.SetCursorPosition(0, 2);
+                Console.Write(String.Format("Vertices:      {0}", vertices.Count));
+
                 vertices = new List<Vector3>();
                 indices = new uint[totalVerts];
                 colours = new List<Vector3>();
 
-                calculationTask = new Task(() =>
-                {
-                    CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts);
-                });
+                //calculationTask = new Task(() =>
+                //{
+                   
+                //});
 
-                calculationTask.Start();
+                //calculationTask.Start();
             }
         }
     }

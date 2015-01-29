@@ -33,11 +33,11 @@ namespace Music_Maze
             }
         }
 
-        public void Buffer()
+        public void Buffer(float mod)
         {
             foreach (var element in elements)
             {
-                element.Buffer();
+                element.Buffer(mod);
             }
         }
     }

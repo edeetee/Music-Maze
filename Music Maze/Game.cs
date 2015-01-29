@@ -26,16 +26,21 @@ namespace Music_Maze
         Vector2 mouse;
         bool mouseLock = true;
 
+        MusicAnalyse music;
+
+        //float curMod = 1f;
+        //float modSpeedMod = 0.3f;
+
         public Game() : base(640,480, GraphicsMode.Default, "Music Maze 0.1")
         {
             VSync = VSyncMode.Adaptive;
+            TargetRenderFrequency = 60d;
 
             SetupView();
             modelView = Matrix4.Identity;
 
-            Func<float, float, float> equation = (x, y) => (float)(Math.Sin(x*2) * Math.Sin(y*2)/2);
-            //Func<float, float, float> equation = (x, y) => x;
-            int depth = 8;
+            Func<float, float, float, float> equation = (x, y, mod) => (float)( Math.Sin(y -0.41) * Math.Sin(x - 0.614)*mod );
+            int depth = 9;
 
             elements = new List<IVBO>()
             {
@@ -50,13 +55,25 @@ namespace Music_Maze
                 new Point(new Vector3(1,0,0)),
 
                 new EquationTriangle(new Vector3(4,0,0), new Vector3(0,0,0), new Vector3(0,0,4), equation, depth),
-                new EquationTriangle(new Vector3(4,0,0), new Vector3(4,0,4), new Vector3(0,0,4), equation, depth)
+                new EquationTriangle(new Vector3(4,0,0), new Vector3(4,0,4), new Vector3(0,0,4), equation, depth),
+
+                new EquationTriangle(new Vector3(8,0,0), new Vector3(4,0,0), new Vector3(4,0,4), equation, depth),
+                new EquationTriangle(new Vector3(8,0,0), new Vector3(8,0,4), new Vector3(4,0,4), equation, depth),
+
+                new EquationTriangle(new Vector3(12,0,0), new Vector3(8,0,0), new Vector3(8,0,4), equation, depth),
+                new EquationTriangle(new Vector3(12,0,0), new Vector3(12,0,4), new Vector3(8,0,4), equation, depth)
 
             };
 
+            music = new MusicAnalyse("early.wav");
+
+            music.Play();
+
+            var curMod = music.CurrentMagnitude();
+
             foreach (IVBO element in elements)
             {
-                element.Buffer();
+                element.Buffer(curMod);
             }
         }
 
@@ -115,9 +132,11 @@ namespace Music_Maze
 
             modelView = Matrix4.LookAt(pos, pos + forward, up);
 
+            var curMod = music.CurrentMagnitude();
+
             foreach(IVBO element in elements)
             {
-                element.Buffer();
+                element.Buffer(curMod);
             }
         }
 
@@ -136,7 +155,7 @@ namespace Music_Maze
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            Console.Clear();
+            Console.SetCursorPosition(0, 0);
             Console.Write(RenderFrequency);
 
             GL.MatrixMode(MatrixMode.Projection);

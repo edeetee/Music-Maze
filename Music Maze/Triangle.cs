@@ -43,7 +43,7 @@ namespace Music_Maze
             GL.DrawArrays(PrimitiveType.Triangles, 0, primitiveCount);
         }
 
-        public void Buffer()
+        public void Buffer(float mod)
         {
             primitiveCount = points.Length;
 

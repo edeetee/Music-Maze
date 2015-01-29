@@ -29,6 +29,6 @@ namespace Music_Maze
             GL.End();
         }
 
-        public void Buffer() { }
+        public void Buffer(float mod) { }
     }
 }

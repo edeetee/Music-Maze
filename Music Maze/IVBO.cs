@@ -10,6 +10,6 @@ namespace Music_Maze
     interface IVBO
     {
         void Render(FrameEventArgs e);
-        void Buffer();
+        void Buffer(float mod);
     }
 }
