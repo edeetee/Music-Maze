@@ -31,7 +31,7 @@ namespace Music_Maze
         //float curMod = 1f;
         //float modSpeedMod = 0.3f;
 
-        public Game() : base(640,480, GraphicsMode.Default, "Music Maze 0.1")
+        public Game() : base(1280,800, GraphicsMode.Default, "Music Maze 0.1")
         {
             VSync = VSyncMode.Adaptive;
             TargetRenderFrequency = 60d;
