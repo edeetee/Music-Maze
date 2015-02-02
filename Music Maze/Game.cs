@@ -28,41 +28,48 @@ namespace Music_Maze
 
         MusicAnalyse music;
 
+        const float pi = (float)Math.PI;
+
         //float curMod = 1f;
         //float modSpeedMod = 0.3f;
 
         public Game() : base(1280,800, GraphicsMode.Default, "Music Maze 0.1")
         {
-            VSync = VSyncMode.Adaptive;
-            TargetRenderFrequency = 60d;
+            //VSync = VSyncMode.Adaptive;
+            VSync = VSyncMode.Off;
+            //TargetRenderFrequency = 60d;
+            //TargetUpdateFrequency = 60d;
 
             SetupView();
             modelView = Matrix4.Identity;
+            
+            int depth = 6;
+            float size = 2;
 
-            Func<float, float, float, float> equation = (x, y, mod) => (float)( Math.Sin(y -0.41) * Math.Sin(x - 0.614)*mod );
-            int depth = 9;
+            Func<float, float, float, float> equation1 = (x, y, mod) => (float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod/2 * size);
+
+            Func<float, float, float, float> equation2 = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 4 * size);
+
+            Func<float, float, float, float> equation3 = (x, y, mod) => equation2(x, y, mod) * 3;
+
+            Func<float, float, float, float> equationb = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * x * mod / 4 * size);
 
             elements = new List<IVBO>()
             {
-                //new Pyramid(new Vector3(0,1,2), new Vector3(-1,0,1), new Vector3(1,0,1), new Vector3(1,0,3), new Vector3(-1,0,3)),
-
-                new Triangle(new Vector3(0,1,-1), new Vector3(-1,0,-1), new Vector3(1,0,-1), new Vector3(1,1,0)),
-                new Triangle(new Vector3(0,-1,-1), new Vector3(-1,0,-1), new Vector3(1,0,-1), new Vector3(1,0,1)),
-
                 new Point(new Vector3(0,0,0)),
 
                 new Point(new Vector3(0,0,1)),
                 new Point(new Vector3(1,0,0)),
+                new Point(new Vector3(0,0,-1)),
+                new Point(new Vector3(-1,0,0)),
 
-                new EquationTriangle(new Vector3(4,0,0), new Vector3(0,0,0), new Vector3(0,0,4), equation, depth),
-                new EquationTriangle(new Vector3(4,0,0), new Vector3(4,0,4), new Vector3(0,0,4), equation, depth),
+                new EquationCuboid(new Vector3(3,3,3), 2, 2, 2, depth, equation2, new Vector3(0,1,1)),
 
-                new EquationTriangle(new Vector3(8,0,0), new Vector3(4,0,0), new Vector3(4,0,4), equation, depth),
-                new EquationTriangle(new Vector3(8,0,0), new Vector3(8,0,4), new Vector3(4,0,4), equation, depth),
+                new EquationCuboid(new Vector3(-3,0,-3), 0.5f, 2, 0.5f, depth, equation1, new Vector3(0,0,1)),
 
-                new EquationTriangle(new Vector3(12,0,0), new Vector3(8,0,0), new Vector3(8,0,4), equation, depth),
-                new EquationTriangle(new Vector3(12,0,0), new Vector3(12,0,4), new Vector3(8,0,4), equation, depth)
+                new EquationCuboid(Vector3.Zero, 1, 1, 1, depth, equation1, new Vector3(1,1,0)),
 
+                new EquationCuboid(Vector3.Zero, 20, 20, 20, depth, equation3, new Vector3(1,0,1))
             };
 
             music = new MusicAnalyse("early.wav");
@@ -76,6 +83,26 @@ namespace Music_Maze
                 element.Buffer(curMod);
             }
         }
+
+        public float Cos(float x)
+        {
+            x += pi / 2;
+
+            if (x > pi)   // Original x > pi/2
+            {
+                x -= 2 * pi;   // Wrap: cos(x) = cos(x - 2 pi)
+            }
+
+            return Sin(x);
+        }
+
+        public float Sin(float x)
+        {
+            const float B = 4 / pi;
+            const float C = -4 / (pi * pi);
+
+            return (B * x + C * x * x);
+        } 
 
         protected override void OnResize(EventArgs e)
         {
@@ -155,8 +182,8 @@ namespace Music_Maze
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            Console.SetCursorPosition(0, 0);
-            Console.Write(RenderFrequency);
+            //Console.SetCursorPosition(0, 0);
+            //Console.Write(RenderFrequency);
 
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadMatrix(ref projection);

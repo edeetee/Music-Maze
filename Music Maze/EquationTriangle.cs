@@ -17,8 +17,6 @@ namespace Music_Maze
         Func<float, float, float, float> equation;
         int depth;
 
-        Random ran = new Random();
-
         int totalVerts;
 
         List<Vector3> vertices;
@@ -32,9 +30,16 @@ namespace Music_Maze
 
         Vector3[] boundingPoints;
 
-        public EquationTriangle(Vector3 corner1, Vector3 corner2, Vector3 corner3, Func<float,float,float,float> equation, int depth = 1)
+        Matrix4 matrix;
+        Matrix4 matrixInv;
+
+        Vector3 colourBase;
+
+
+        public EquationTriangle(Vector3 pos, float height, float width, Vector3 colourBase, Quaternion angle, Func<float, float, float, float> equation, int depth = 1)
         {
-            boundingPoints = new Vector3[]{corner1, corner2, corner3};
+            boundingPoints = new Vector3[] { new Vector3(1, 0, -1), new Vector3(-1, 0, -1), new Vector3(-1, 0, 1) };
+
             this.equation = equation;
             this.depth = depth;
 
@@ -44,19 +49,20 @@ namespace Music_Maze
             indices = new uint[totalVerts];
             colours = new List<Vector3>();
 
-            //calculationTask = new Task(() =>
-            //{
-            //    CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts, 1f);
-            //});
-            //calculationTask.RunSynchronously();
+            this.colourBase = colourBase;
 
             verticesID = GL.GenBuffer();
             coloursID = GL.GenBuffer();
             GL.GenBuffers(1, out indicesID);
+
+            matrix = Matrix4.CreateScale(height, 1, width) * Matrix4.CreateFromQuaternion(angle) * Matrix4.CreateTranslation(pos);
+            matrixInv = matrix.Inverted();
         }
 
         public void Render(FrameEventArgs e)
         {
+            GL.MultMatrix(ref matrix);
+
             GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
             GL.VertexPointer(3, VertexPointerType.Float, Vector3.SizeInBytes, IntPtr.Zero);
 
@@ -65,6 +71,8 @@ namespace Music_Maze
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
             GL.DrawElements(BeginMode.Triangles, totalVerts, DrawElementsType.UnsignedInt, 0);
+
+            GL.MultMatrix(ref matrixInv);
         }
 
         //left inclusive, right exclusive
@@ -100,7 +108,8 @@ namespace Music_Maze
             if(id == uint.MaxValue)
             {
                 vertices.Add(pos);
-                colours.Add(new Vector3(pos.X/8f, pos.Y, pos.Z/8f) * ( mod < 0.5f ? 0.5f : mod ) );
+                //colours.Add(new Vector3(pos.X/8f, pos.Y, pos.Z/8f) * ( mod < 0.5f ? 0.5f : mod ) );
+                colours.Add(colourBase * (mod < 0.5f ? 0.5f : mod));
                 id = (uint)vertices.Count - 1;
             }
 
@@ -145,12 +154,6 @@ namespace Music_Maze
 
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(totalVerts * sizeof(uint)), indices.ToArray(), BufferUsageHint.DynamicDraw);
-
-                Console.SetCursorPosition(0, 1);
-                Console.Write(String.Format("Total points:  {0}", totalVerts));
-
-                Console.SetCursorPosition(0, 2);
-                Console.Write(String.Format("Vertices:      {0}", vertices.Count));
 
                 vertices = new List<Vector3>();
                 indices = new uint[totalVerts];

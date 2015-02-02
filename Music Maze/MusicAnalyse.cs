@@ -37,9 +37,11 @@ namespace Music_Maze
         {
             this.path = path;
             wavFile = File.Open(path, FileMode.Open);
+            var decoded = new WaveDecoder(wavFile).Decode();
 
-            //signal = new WaveRectifier(true).Apply(new HighPassFilter(1f).Apply( new WaveDecoder(wavFile).Decode() ));
-            signal = new WaveRectifier(true).Apply(new WaveDecoder(wavFile).Decode());
+            //signal = new WaveRectifier(true).Apply(new HighPassFilter(0.5f).Apply(decoded));
+            //signal = new HighPassFilter(1f).Apply(decoded);
+            signal = new WaveRectifier(false).Apply(decoded);
 
             audioStopwatch = new Stopwatch();
             audioDuration = signal.Duration;
@@ -49,24 +51,37 @@ namespace Music_Maze
 
             int split = 10;
 
+            float max = 0f;
+
             magnitudes = new float[signal.Length/split];
+            magnitudes = new float[0];
 
             for (int i = 0; i < magnitudes.Length; i++ )
             {
+                if(i % 10000 == 0)
+                {
+                    int barLength = 20;
+                    int bar = (int)Math.Round(((i)/(float)magnitudes.Length*barLength ));
+                    string str = String.Concat(Enumerable.Repeat("█", bar)) + String.Concat(Enumerable.Repeat(" ", barLength - bar));
+
+                    Console.SetCursorPosition(0, 0);
+                    Console.Write("Loading..<{0}>", str);
+                }
+
                 float total = 0;
                 for (int k = -radius; k <= radius; k += radiusMod)
                 {
                     int index = i * split + k;
 
                     if (0 < index && index < signal.Length)
-                        total += signal.GetSample(0, index) * (float)Math.Cos(k / (radius * 2) * Math.PI);
+                        total += signal.GetSample(0, index) * (float)Math.Cos(k / (radius * 4) * Math.PI);
                     else
                         total += 0.5f;
                 }
 
-                magnitudes[i] = Math.Abs(total)/radius*radiusMod*5;
+                magnitudes[i] = Math.Abs(total)/radius*radiusMod;
 
-                if (magnitudes[i] > 5f) { }
+                if (magnitudes[i] > max) { max = magnitudes[i]; }
             }
 
             wavFile.Close();
@@ -80,18 +95,37 @@ namespace Music_Maze
 
             Bass.BASS_ChannelPlay(audioStream, true);
             audioStopwatch.Start();
+
+            Console.Clear();
         }
 
         public float CurrentMagnitude()
         {
+            int radius = 3000;
+
             var pos = (double)Bass.BASS_ChannelGetPosition(audioStream);
             var length = (double)Bass.BASS_ChannelGetLength(audioStream);
 
             var a = Math.Round(pos / length);
 
-            int i = (int)Math.Round(pos / length * magnitudes.Length);
+            int i = (int)Math.Round(pos / length * signal.Length);
+
+            float total = 0;
+
+            for (int k = -radius; k <= radius; k++)
+            {
+                int index = i + k;
+
+                if (0 < index && index < signal.Length)
+                    total += signal.GetSample(0, index) * (float)Math.Cos(k / (radius * 4) * Math.PI);
+                else
+                    total += 0.5f;
+            }
+
+            return Math.Abs(total) / radius;
+
             //var val = (float)Math.Pow(magnitudes[i], 2);
-            return i < magnitudes.Length ? magnitudes[i] : 0f;
+            //return i < magnitudes.Length ? magnitudes[i] : 0f;
         }
     }
 }

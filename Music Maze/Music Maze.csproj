@@ -84,6 +84,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EquationCuboid.cs" />
+    <Compile Include="EquationRectangle.cs" />
     <Compile Include="EquationTriangle.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Game.cs" />
