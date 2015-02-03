@@ -19,11 +19,6 @@ namespace Music_Maze
         static Quaternion forward = Quaternion.FromAxisAngle(new Vector3(0, 0, -1), 0.5f * (float)Math.PI);
         static Quaternion back = Quaternion.FromAxisAngle(new Vector3(0, 0, 1), 0.5f * (float)Math.PI);
 
-        Matrix4 matrixInv
-        {
-            get { return matrix.Inverted(); }
-        }
-
        // float totalRot;
 
         public EquationCuboid(Vector3 pos, Vector3 scale, Quaternion angle, int renderDepth, Func<float, float, float, float> equation, Vector3 colour) : base(pos, scale, angle)

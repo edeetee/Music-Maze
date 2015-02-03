@@ -13,7 +13,6 @@ namespace Music_Maze
     class EquationTriangle : GameObject
     {
         public float equationMod = 1;
-        //X, Z, equationMod : return Y
         Func<float, float, float, float> equation;
         int depth;
 
@@ -56,13 +55,13 @@ namespace Music_Maze
 
         public override void Render(FrameEventArgs e, int matrixID) 
         {
-            GL.UniformMatrix4(matrixID, true, ref matrix);
+            //GL.UniformMatrix4(matrixID, true, ref matrix);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
             GL.VertexAttribPointer(verticesID, 3, VertexAttribPointerType.Float, false, 0, 0);
 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
-            GL.VertexAttribPointer(coloursID, 3, VertexAttribPointerType.Float, false, 0, 0);
+            //GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
+            //GL.VertexAttribPointer(coloursID, 3, VertexAttribPointerType.Float, false, 0, 0);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
             GL.DrawElements(BeginMode.Triangles, totalVerts, DrawElementsType.UnsignedInt, 0);

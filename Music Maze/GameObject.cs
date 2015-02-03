@@ -21,7 +21,8 @@ namespace Music_Maze
 
         public virtual void Render(FrameEventArgs e, int matrixID)
         {
-            GL.UniformMatrix4(matrixID, true, ref matrix);
+            //GL.UniformMatrix4(matrixID, true, ref matrix);
+            //GL.UniformMatrix4()
 
             foreach (var child in children)
             {
