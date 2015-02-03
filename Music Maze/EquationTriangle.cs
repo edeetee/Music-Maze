@@ -1,5 +1,5 @@
 ﻿using OpenTK;
-using OpenTK.Graphics.OpenGL;
+using OpenTK.Graphics.OpenGL4;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,7 @@ using System.Diagnostics;
 
 namespace Music_Maze
 {
-    class EquationTriangle : IVBO
+    class EquationTriangle : GameObject
     {
         public float equationMod = 1;
         //X, Z, equationMod : return Y
@@ -30,13 +30,11 @@ namespace Music_Maze
 
         Vector3[] boundingPoints;
 
-        Matrix4 matrix;
-        Matrix4 matrixInv;
-
         Vector3 colourBase;
 
 
-        public EquationTriangle(Vector3 pos, float height, float width, Vector3 colourBase, Quaternion angle, Func<float, float, float, float> equation, int depth = 1)
+        public EquationTriangle(Vector3 pos, Vector3 scale, Quaternion rotation, Vector3 colourBase, Func<float, float, float, float> equation, int depth = 1) : 
+            base(pos, scale, rotation)
         {
             boundingPoints = new Vector3[] { new Vector3(1, 0, -1), new Vector3(-1, 0, -1), new Vector3(-1, 0, 1) };
 
@@ -54,25 +52,20 @@ namespace Music_Maze
             verticesID = GL.GenBuffer();
             coloursID = GL.GenBuffer();
             GL.GenBuffers(1, out indicesID);
-
-            matrix = Matrix4.CreateScale(height, 1, width) * Matrix4.CreateFromQuaternion(angle) * Matrix4.CreateTranslation(pos);
-            matrixInv = matrix.Inverted();
         }
 
-        public void Render(FrameEventArgs e)
+        public override void Render(FrameEventArgs e, int matrixID) 
         {
-            GL.MultMatrix(ref matrix);
+            GL.UniformMatrix4(matrixID, true, ref matrix);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
-            GL.VertexPointer(3, VertexPointerType.Float, Vector3.SizeInBytes, IntPtr.Zero);
+            GL.VertexAttribPointer(verticesID, 3, VertexAttribPointerType.Float, false, 0, 0);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
-            GL.ColorPointer(3, ColorPointerType.Float, Vector3.SizeInBytes, IntPtr.Zero);
+            GL.VertexAttribPointer(coloursID, 3, VertexAttribPointerType.Float, false, 0, 0);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
             GL.DrawElements(BeginMode.Triangles, totalVerts, DrawElementsType.UnsignedInt, 0);
-
-            GL.MultMatrix(ref matrixInv);
         }
 
         //left inclusive, right exclusive
@@ -138,7 +131,7 @@ namespace Music_Maze
             median = diff[maxI]/2 + newCorner1;
         }
 
-        public void Buffer(float mod)
+        public override void Buffer(float mod)
         {
             equationMod += 0.01f;
 

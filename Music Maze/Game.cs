@@ -1,6 +1,6 @@
 ﻿using OpenTK;
 using OpenTK.Graphics;
-using OpenTK.Graphics.OpenGL;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
 using System;
 using System.Collections.Generic;
@@ -12,9 +12,58 @@ namespace Music_Maze
 {
     class Game : GameWindow
     {
+        string vertexShaderSource = @"
+#version 140
+ 
+// object space to camera space transformation
+uniform mat4 modelview_matrix;            
+ 
+// camera space to clip coordinates
+uniform mat4 projection_matrix;
+ 
+ 
+// incoming vertex position
+in vec3 vertex_position;
+ 
+// incoming vertex normal
+in vec3 vertex_normal;
+ 
+// transformed vertex normal
+out vec3 normal;
+ 
+void main(void)
+{
+    //not a proper transformation if modelview_matrix involves non-uniform scaling
+    normal = ( modelview_matrix * vec4( vertex_normal, 0 ) ).xyz;
+ 
+    // transforming the incoming vertex position
+    gl_Position = projection_matrix * modelview_matrix * vec4( vertex_position, 1 );
+}";
+
+        string fragmentShaderSource = @"
+#version 140
+ 
+precision highp float;
+ 
+const vec3 ambient = vec3( 0.1, 0.1, 0.1 );
+const vec3 lightVecNormalized = normalize( vec3( 0.5, 0.5, 2 ) );
+const vec3 lightColor = vec3( 1.0, 0.8, 0.2 );
+ 
+in vec3 normal;
+ 
+out vec4 out_frag_color;
+ 
+void main(void)
+{
+    float diffuse = clamp( dot( lightVecNormalized, normalize( normal ) ), 0.0, 1.0 );
+    out_frag_color = vec4( ambient + diffuse * lightColor, 1.0 );
+}";
+
+        int programID, modelviewMatrixID, projectionMatrixID;
+
         float lookSpeed = 1f;
         float moveSpeed = 0.05f;
-        List<IVBO> elements;
+        List<GameObject> objects;
         Matrix4 projection;
         Matrix4 modelView;
 
@@ -35,12 +84,10 @@ namespace Music_Maze
 
         public Game() : base(1280,800, GraphicsMode.Default, "Music Maze 0.1")
         {
-            //VSync = VSyncMode.Adaptive;
-            VSync = VSyncMode.Off;
-            //TargetRenderFrequency = 60d;
-            //TargetUpdateFrequency = 60d;
+            VSync = VSyncMode.Adaptive;
 
-            SetupView();
+            GL.Viewport(0, 0, Width, Height);
+
             modelView = Matrix4.Identity;
             
             int depth = 6;
@@ -50,38 +97,57 @@ namespace Music_Maze
 
             Func<float, float, float, float> equation2 = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 4 * size);
 
-            Func<float, float, float, float> equation3 = (x, y, mod) => equation2(x, y, mod) * 3;
+            //Func<float, float, float, float> equation3 = (x, y, mod) => equation2(x, y, mod) * 3;
 
             Func<float, float, float, float> equationb = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * x * mod / 4 * size);
 
-            elements = new List<IVBO>()
+            objects = new List<GameObject>()
             {
-                new Point(new Vector3(0,0,0)),
+                new EquationCuboid(new Vector3(3,3,3), Vector3.One*2, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
 
-                new Point(new Vector3(0,0,1)),
-                new Point(new Vector3(1,0,0)),
-                new Point(new Vector3(0,0,-1)),
-                new Point(new Vector3(-1,0,0)),
+                new EquationCuboid(new Vector3(-3,0,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation1, new Vector3(0,0,1)),
 
-                new EquationCuboid(new Vector3(3,3,3), 2, 2, 2, depth, equation2, new Vector3(0,1,1)),
+                new EquationCuboid(Vector3.Zero, Vector3.One, Quaternion.Identity, depth, equation1, new Vector3(1,1,0)),
 
-                new EquationCuboid(new Vector3(-3,0,-3), 0.5f, 2, 0.5f, depth, equation1, new Vector3(0,0,1)),
-
-                new EquationCuboid(Vector3.Zero, 1, 1, 1, depth, equation1, new Vector3(1,1,0)),
-
-                new EquationCuboid(Vector3.Zero, 20, 20, 20, depth, equation3, new Vector3(1,0,1))
+                new EquationCuboid(Vector3.Zero, Vector3.One*20, Quaternion.Identity, depth, equation2, new Vector3(1,0,1))
             };
 
             music = new MusicAnalyse("early.wav");
 
             music.Play();
+        }
 
-            var curMod = music.CurrentMagnitude();
+        protected override void OnLoad(EventArgs e)
+        {
+            programID = GL.CreateProgram();
 
-            foreach (IVBO element in elements)
+            LoadShader(vertexShaderSource, ShaderType.VertexShader);
+            LoadShader(fragmentShaderSource, ShaderType.FragmentShader);
+
+            GL.LinkProgram(programID);
+            GL.UseProgram(programID);
+
+            modelviewMatrixID = GL.GetUniformLocation(programID, "modelview_matrix");
+            projectionMatrixID = GL.GetUniformLocation(programID, "projection_matrix");
+
+            foreach (GameObject element in objects)
             {
-                element.Buffer(curMod);
+                element.Buffer(1);
             }
+        }
+
+        public int LoadShader(string shader, ShaderType shaderType)
+        {
+            int shaderID = GL.CreateShader(shaderType);
+            GL.ShaderSource(shaderID, shader);
+            GL.CompileShader(shaderID);
+            GL.AttachShader(programID, shaderID);
+
+            string programInfoLog;
+            GL.GetProgramInfoLog(shaderID, out programInfoLog);
+            Console.Write(programInfoLog);
+
+            return shaderID;
         }
 
         public float Cos(float x)
@@ -106,7 +172,8 @@ namespace Music_Maze
 
         protected override void OnResize(EventArgs e)
         {
-            SetupView();
+            GL.Viewport(0, 0, Width, Height);
+            SetProjection(Matrix4.CreatePerspectiveFieldOfView(1f, (float)Width / (float)Height, 1f, 100f));
         }
 
         protected override void OnKeyDown(KeyboardKeyEventArgs e)
@@ -157,51 +224,38 @@ namespace Music_Maze
             if (state[Key.Space])
                 pos += up * moveSpeed;
 
-            modelView = Matrix4.LookAt(pos, pos + forward, up);
+            SetModelview(Matrix4.LookAt(pos, pos + forward, up));
 
             var curMod = music.CurrentMagnitude();
 
-            foreach(IVBO element in elements)
+            foreach(GameObject element in objects)
             {
                 element.Buffer(curMod);
             }
         }
 
-        void SetupView()
+        void SetModelview(Matrix4 matrix)
         {
-            GL.Viewport(0, 0, Width, Height);
-            UpdateProjection();
+            GL.UniformMatrix4(modelviewMatrixID, false, ref matrix);
         }
 
-        void UpdateProjection()
+        void SetProjection(Matrix4 matrix)
         {
-            projection = Matrix4.CreatePerspectiveFieldOfView(2f, Width / (float)Height, 0.01f, 100f);
+            GL.UniformMatrix4(projectionMatrixID, false, ref matrix);
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            //Console.SetCursorPosition(0, 0);
-            //Console.Write(RenderFrequency);
-
-            GL.MatrixMode(MatrixMode.Projection);
-            GL.LoadMatrix(ref projection);
-
-            GL.MatrixMode(MatrixMode.Modelview);
-            GL.LoadMatrix(ref modelView);
-
-            GL.EnableClientState(ArrayCap.VertexArray);
-            GL.EnableClientState(ArrayCap.IndexArray);
-            GL.EnableClientState(ArrayCap.ColorArray);
-
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.Blend);
-            //GL.Blend
 
-            foreach (IVBO element in elements)
+
+
+            foreach (GameObject element in objects)
             {
-                element.Render(e);
+                element.Render(e, modelviewMatrixID);
             }
 
             SwapBuffers();

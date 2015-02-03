@@ -89,13 +89,11 @@
     <Compile Include="EquationTriangle.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Game.cs" />
-    <Compile Include="IVBO.cs" />
+    <Compile Include="GameObject.cs" />
+    <Compile Include="Helper.cs" />
     <Compile Include="MusicAnalyse.cs" />
-    <Compile Include="Point.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Pyramid.cs" />
-    <Compile Include="Triangle.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
