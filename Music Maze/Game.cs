@@ -13,10 +13,10 @@ namespace Music_Maze
     class Game : GameWindow
     {
         string vertexShaderSource = @"
-#version 330
+#version 400
  
 // object space to camera space transformation
-uniform mat4 modelview_matrix;
+uniform mat4 view_matrix;
  
 // camera space to clip coordinates
 uniform mat4 projection_matrix;
@@ -27,11 +27,11 @@ in vec3 vertex_position;
 void main()
 {
     // transforming the incoming vertex position
-    gl_Position = modelview_matrix * vec4( vertex_position, 1 );
+    gl_Position = projection_matrix * view_matrix * vec4( vertex_position, 1.0f );
 }";
 
         string fragmentShaderSource = @"
-#version 330
+#version 400
 
 out vec4 outputColor;
 
@@ -39,11 +39,10 @@ void main()
 {
     float lerpValue = gl_FragCoord.y / 500.0f;
     
-    outputColor = mix(vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        vec4(1.0f, 1.0f, 0.1f, 0.5f), lerpValue);
+    outputColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }";
 
-        int programID, modelviewMatrixID, projectionMatrixID;
+        int programID, viewMatrixID, projectionMatrixID;
 
         float lookSpeed = 1f;
         float moveSpeed = 0.05f;
@@ -112,7 +111,7 @@ void main()
             GL.ValidateProgram(programID);
             GL.UseProgram(programID);
 
-            modelviewMatrixID = GL.GetUniformLocation(programID, "modelview_matrix");
+            viewMatrixID = GL.GetUniformLocation(programID, "view_matrix");
             projectionMatrixID = GL.GetUniformLocation(programID, "projection_matrix");
 
             foreach (GameObject element in objects)
@@ -154,7 +153,7 @@ void main()
         protected override void OnResize(EventArgs e)
         {
             GL.Viewport(0, 0, Width, Height);
-            SetProjection(Matrix4.CreatePerspectiveFieldOfView(2f, (float)Width / (float)Height, 1f, 100f));
+            SetProjection();
         }
 
         protected override void OnKeyDown(KeyboardKeyEventArgs e)
@@ -205,24 +204,26 @@ void main()
             if (state[Key.Space])
                 pos += up * moveSpeed;
 
-            SetModelview(Matrix4.LookAt(pos, pos+forward, up));
+            SetModelview();
 
             var curMod = music.CurrentMagnitude();
-
-            //foreach(GameObject element in objects)
-            //{
-            //    element.Buffer(curMod);
-            //}
         }
 
-        void SetModelview(Matrix4 matrix)
+        void SetModelview(Matrix4 matrix = default(Matrix4))
         {
-            var invMatrix = matrix.Inverted();
-            GL.UniformMatrix4(modelviewMatrixID, true, ref invMatrix);
+            if(matrix == default(Matrix4))
+            {
+                matrix = Matrix4.LookAt(pos, pos + forward, up);
+            }
+            GL.UniformMatrix4(modelviewMatrixID, false, ref matrix);
         }
 
-        void SetProjection(Matrix4 matrix)
+        void SetProjection(Matrix4 matrix = default(Matrix4))
         {
+            if (matrix == default(Matrix4))
+            {
+                matrix = Matrix4.CreatePerspectiveFieldOfView(pi/2f, (float)Width / (float)Height, 0.3f, 50f);
+            }
             GL.UniformMatrix4(projectionMatrixID, true, ref matrix);
         }
 
@@ -233,10 +234,7 @@ void main()
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.Blend);
 
-            var points = new Vector3[] { new Vector3(1, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 1) };
-
-            var MVP = Matrix4.CreatePerspectiveFieldOfView(2f, (float)Width / (float)Height, 1f, 100f) * Matrix4.LookAt(pos, pos+forward, up).Inverted();
-            GL.UniformMatrix4(modelviewMatrixID, true, ref MVP);
+            var points = new Vector3[] { new Vector3(1, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 1)};
 
             var buffer = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ArrayBuffer, buffer);
