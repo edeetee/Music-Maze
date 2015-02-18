@@ -19,15 +19,20 @@ namespace Music_Maze
             children = new List<GameObject>();
         }
 
-        public virtual void Render(FrameEventArgs e, int matrixID)
+        public virtual void Render(FrameEventArgs e, ref Matrix4 matrix)
         {
-            //GL.UniformMatrix4(matrixID, true, ref matrix);
-            //GL.UniformMatrix4()
+            var internalMatrix = this.matrix * matrix;
+
+            GL.UniformMatrix4(Game.modelMatrixID, false, ref internalMatrix);
 
             foreach (var child in children)
             {
-                child.Render(e, matrixID);
+                child.Render(e, ref internalMatrix);
+
+                Game.GetError();
             }
+
+            GL.UniformMatrix4(Game.modelMatrixID, false, ref matrix);
         }
 
         public virtual void Buffer(float mod)
@@ -35,6 +40,8 @@ namespace Music_Maze
             foreach (var child in children)
             {
                 child.Buffer(mod);
+
+                Game.GetError();
             }
         }
     }

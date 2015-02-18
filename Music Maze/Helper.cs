@@ -11,7 +11,7 @@ namespace Music_Maze
     {
         public static Matrix4 Create(Vector3 pos, Vector3 scale, Quaternion rotation)
         {
-            return Matrix4.CreateScale(scale) * Matrix4.CreateFromQuaternion(rotation) * Matrix4.CreateTranslation(pos);
+            return Matrix4.CreateFromQuaternion(rotation) * Matrix4.CreateScale(scale) * Matrix4.CreateTranslation(pos);
         }
     }
 }

@@ -53,18 +53,22 @@ namespace Music_Maze
             GL.GenBuffers(1, out indicesID);
         }
 
-        public override void Render(FrameEventArgs e, int matrixID) 
+        public override void Render(FrameEventArgs e, ref Matrix4 matrix) 
         {
-            //GL.UniformMatrix4(matrixID, true, ref matrix);
+            var internalMatrix = this.matrix * matrix;
+
+            GL.UniformMatrix4(Game.modelMatrixID, false, ref internalMatrix);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
-            GL.VertexAttribPointer(verticesID, 3, VertexAttribPointerType.Float, false, 0, 0);
+            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 0, 0);
 
-            //GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
-            //GL.VertexAttribPointer(coloursID, 3, VertexAttribPointerType.Float, false, 0, 0);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
+            GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 0, 0);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
             GL.DrawElements(BeginMode.Triangles, totalVerts, DrawElementsType.UnsignedInt, 0);
+
+            GL.UniformMatrix4(Game.modelMatrixID, false, ref matrix);
         }
 
         //left inclusive, right exclusive
@@ -100,7 +104,6 @@ namespace Music_Maze
             if(id == uint.MaxValue)
             {
                 vertices.Add(pos);
-                //colours.Add(new Vector3(pos.X/8f, pos.Y, pos.Z/8f) * ( mod < 0.5f ? 0.5f : mod ) );
                 colours.Add(colourBase * (mod < 0.5f ? 0.5f : mod));
                 id = (uint)vertices.Count - 1;
             }
@@ -136,28 +139,22 @@ namespace Music_Maze
 
             CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts, mod);
 
-            //if(calculationTask.IsCompleted)
-            {
-                GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
-                GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertices.Count * Vector3.SizeInBytes), vertices.ToArray(), BufferUsageHint.DynamicDraw);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertices.Count * Vector3.SizeInBytes), vertices.ToArray(), BufferUsageHint.DynamicDraw);
 
-                GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
-                GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(colours.Count * Vector3.SizeInBytes), colours.ToArray(), BufferUsageHint.DynamicDraw);
+            GL.EnableVertexAttribArray(1);
 
-                GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
-                GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(totalVerts * sizeof(uint)), indices.ToArray(), BufferUsageHint.DynamicDraw);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(colours.Count * Vector3.SizeInBytes), colours.ToArray(), BufferUsageHint.DynamicDraw);
 
-                vertices = new List<Vector3>();
-                indices = new uint[totalVerts];
-                colours = new List<Vector3>();
+            GL.EnableVertexAttribArray(2);
 
-                //calculationTask = new Task(() =>
-                //{
-                   
-                //});
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(totalVerts * sizeof(uint)), indices, BufferUsageHint.DynamicDraw);
 
-                //calculationTask.Start();
-            }
+            vertices.Clear();
+            colours.Clear();
+            indices = new uint[totalVerts];
         }
     }
 }

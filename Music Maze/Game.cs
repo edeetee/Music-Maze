@@ -14,6 +14,9 @@ namespace Music_Maze
     {
         string vertexShaderSource = @"
 #version 400
+
+// incoming delta matrix for model matrix
+uniform mat4 model_matrix;
  
 // object space to camera space transformation
 uniform mat4 view_matrix;
@@ -22,33 +25,37 @@ uniform mat4 view_matrix;
 uniform mat4 projection_matrix;
  
 // incoming vertex position
-in vec3 vertex_position;
- 
+layout(location = 1) in vec4 vertex_position;
+
+//colour
+layout(location = 2) in vec3 colour;
+
+out vec3 vertexColour;
+
 void main()
 {
     // transforming the incoming vertex position
-    gl_Position = projection_matrix * view_matrix * vec4( vertex_position, 1.0f );
+    gl_Position = projection_matrix * view_matrix * model_matrix * vertex_position;
+    vertexColour = colour;
 }";
 
         string fragmentShaderSource = @"
 #version 400
 
-out vec4 outputColor;
+in vec3 vertexColour;
 
 void main()
 {
-    float lerpValue = gl_FragCoord.y / 500.0f;
-    
-    outputColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    gl_FragColor = vec4(vertexColour, 0.5);
 }";
 
-        int programID, viewMatrixID, projectionMatrixID;
+        public static int programID, modelMatrixID, viewMatrixID, projectionMatrixID;
 
         float lookSpeed = 1f;
         float moveSpeed = 0.05f;
         List<GameObject> objects;
-        Matrix4 projection;
-        Matrix4 modelView;
+
+        Matrix4 modelMatrix;
 
         Vector3 pos;
         Vector3 forward;
@@ -62,19 +69,16 @@ void main()
 
         const float pi = (float)Math.PI;
 
-        //float curMod = 1f;
-        //float modSpeedMod = 0.3f;
-
         public Game() : base(1280,800, GraphicsMode.Default, "Music Maze 0.1")
         {
             VSync = VSyncMode.Adaptive;
 
             GL.Viewport(0, 0, Width, Height);
-
-            modelView = Matrix4.Identity;
             
             int depth = 6;
             float size = 2;
+
+            modelMatrix = Matrix4.Identity;
 
             Func<float, float, float, float> equation1 = (x, y, mod) => (float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod/2 * size);
 
@@ -86,18 +90,27 @@ void main()
 
             objects = new List<GameObject>()
             {
-                new EquationCuboid(new Vector3(3,3,3), Vector3.One*2, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
+                //new EquationCuboid(new Vector3(3,3,3), Vector3.One*2, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
 
-                new EquationCuboid(new Vector3(-3,0,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation1, new Vector3(0,0,1)),
+                //new EquationCuboid(new Vector3(-3,0,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation1, new Vector3(0,0,1)),
 
-                new EquationCuboid(Vector3.Zero, Vector3.One, Quaternion.Identity, depth, equation1, new Vector3(1,1,0)),
+                new EquationCuboid(new Vector3(0,0,0), Vector3.One, Quaternion.FromAxisAngle(Vector3.UnitY, 60f), depth, equation1, new Vector3(1,1,0)),
 
-                new EquationCuboid(Vector3.Zero, Vector3.One*20, Quaternion.Identity, depth, equation2, new Vector3(1,0,1))
+                //new EquationCuboid(Vector3.Zero, Vector3.One*20, Quaternion.Identity, depth, equation2, new Vector3(1,0,1))
             };
 
             music = new MusicAnalyse("early.wav");
 
             music.Play();
+        }
+
+        public static void GetError()
+        {
+            var error = GL.GetError();
+            if(error != ErrorCode.NoError)
+            {
+
+            }
         }
 
         protected override void OnLoad(EventArgs e)
@@ -113,10 +126,11 @@ void main()
 
             viewMatrixID = GL.GetUniformLocation(programID, "view_matrix");
             projectionMatrixID = GL.GetUniformLocation(programID, "projection_matrix");
+            modelMatrixID = GL.GetUniformLocation(programID, "model_matrix");
 
             foreach (GameObject element in objects)
             {
-                element.Buffer(1);
+                element.Buffer(0);
             }
         }
 
@@ -207,6 +221,13 @@ void main()
             SetModelview();
 
             var curMod = music.CurrentMagnitude();
+
+            foreach(GameObject element in objects)
+            {
+                //element.Buffer(curMod);
+
+                GetError();
+            }
         }
 
         void SetModelview(Matrix4 matrix = default(Matrix4))
@@ -215,14 +236,14 @@ void main()
             {
                 matrix = Matrix4.LookAt(pos, pos + forward, up);
             }
-            GL.UniformMatrix4(modelviewMatrixID, false, ref matrix);
+            GL.UniformMatrix4(viewMatrixID, false, ref matrix);
         }
 
         void SetProjection(Matrix4 matrix = default(Matrix4))
         {
             if (matrix == default(Matrix4))
             {
-                matrix = Matrix4.CreatePerspectiveFieldOfView(pi/2f, (float)Width / (float)Height, 0.3f, 50f);
+                matrix = Matrix4.CreatePerspectiveFieldOfView(pi/3f, (float)Width / (float)Height, 1f, 50f);
             }
             GL.UniformMatrix4(projectionMatrixID, true, ref matrix);
         }
@@ -232,22 +253,19 @@ void main()
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.PolygonSmooth);
             GL.Enable(EnableCap.Blend);
 
-            var points = new Vector3[] { new Vector3(1, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 1)};
+            GL.BlendFunc(BlendingFactorSrc.SrcAlphaSaturate, BlendingFactorDest.SrcAlpha);
 
-            var buffer = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, buffer);
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(sizeof(float) * 3 * 3), points, BufferUsageHint.DynamicDraw);
-            GL.EnableVertexAttribArray(0);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, buffer);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, 0);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+            GL.PointSize(10f);
 
-            //foreach (GameObject element in objects)
-            //{
-            //    element.Render(e, modelviewMatrixID);
-            //}
+            foreach (GameObject element in objects)
+            {
+                element.Render(e, ref modelMatrix);
+
+                GetError();
+            }
 
             SwapBuffers();
         }

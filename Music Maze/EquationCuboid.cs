@@ -23,8 +23,6 @@ namespace Music_Maze
 
         public EquationCuboid(Vector3 pos, Vector3 scale, Quaternion angle, int renderDepth, Func<float, float, float, float> equation, Vector3 colour) : base(pos, scale, angle)
         {
-            matrix = Helper.Create(pos, scale, angle);
-
             children = new List<GameObject>(){
                 new EquationRectangle(new Vector3(0,1,0), Vector3.One, up, renderDepth, equation, colour * 0.7f),
                 new EquationRectangle(new Vector3(0,-1,0), Vector3.One, down, renderDepth, equation, colour * 0.8f),
