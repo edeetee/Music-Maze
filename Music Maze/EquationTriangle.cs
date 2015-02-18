@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 using System.Diagnostics;
 
@@ -12,7 +13,6 @@ namespace Music_Maze
 {
     class EquationTriangle : GameObject
     {
-        public float equationMod = 1;
         Func<float, float, float, float> equation;
         int depth;
 
@@ -129,8 +129,6 @@ namespace Music_Maze
 
         public override void Buffer(float mod)
         {
-            equationMod += 0.01f;
-
             CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts, mod);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);

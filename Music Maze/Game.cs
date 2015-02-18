@@ -46,7 +46,7 @@ in vec3 vertexColour;
 
 void main()
 {
-    gl_FragColor = vec4(vertexColour, 0.5);
+    gl_FragColor = vec4(vertexColour, 1.0);
 }";
 
         public static int programID, modelMatrixID, viewMatrixID, projectionMatrixID;
@@ -256,8 +256,6 @@ void main()
             GL.Enable(EnableCap.Blend);
 
             GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
-
-            GL.PointSize(10f);
 
             foreach (GameObject element in objects)
             {
