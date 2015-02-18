@@ -90,13 +90,13 @@ void main()
 
             objects = new List<GameObject>()
             {
-                //new EquationCuboid(new Vector3(3,3,3), Vector3.One*2, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
+                new EquationCuboid(new Vector3(3,3,3), Vector3.One*2, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
 
-                //new EquationCuboid(new Vector3(-3,0,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation1, new Vector3(0,0,1)),
+                new EquationCuboid(new Vector3(-3,0,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation1, new Vector3(0,0,1)),
 
-                new EquationCuboid(new Vector3(0,0,0), Vector3.One, Quaternion.FromAxisAngle(Vector3.UnitY, 60f), depth, equation1, new Vector3(1,1,0)),
+                new EquationCuboid(new Vector3(1,0,0), Vector3.One, Quaternion.Identity, depth, equation1, new Vector3(1,1,0)),
 
-                //new EquationCuboid(Vector3.Zero, Vector3.One*20, Quaternion.Identity, depth, equation2, new Vector3(1,0,1))
+                new EquationCuboid(Vector3.Zero, Vector3.One*20, Quaternion.Identity, depth, equation2, new Vector3(1,0,1))
             };
 
             music = new MusicAnalyse("early.wav");
@@ -224,7 +224,7 @@ void main()
 
             foreach(GameObject element in objects)
             {
-                //element.Buffer(curMod);
+                element.Buffer(curMod);
 
                 GetError();
             }
@@ -253,17 +253,15 @@ void main()
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             GL.Enable(EnableCap.DepthTest);
-            GL.Enable(EnableCap.PolygonSmooth);
             GL.Enable(EnableCap.Blend);
 
-            GL.BlendFunc(BlendingFactorSrc.SrcAlphaSaturate, BlendingFactorDest.SrcAlpha);
+            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
 
             GL.PointSize(10f);
 
             foreach (GameObject element in objects)
             {
                 element.Render(e, ref modelMatrix);
-
                 GetError();
             }
 

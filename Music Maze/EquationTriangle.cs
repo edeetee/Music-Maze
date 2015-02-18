@@ -53,12 +53,8 @@ namespace Music_Maze
             GL.GenBuffers(1, out indicesID);
         }
 
-        public override void Render(FrameEventArgs e, ref Matrix4 matrix) 
+        protected override void Draw() 
         {
-            var internalMatrix = this.matrix * matrix;
-
-            GL.UniformMatrix4(Game.modelMatrixID, false, ref internalMatrix);
-
             GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
             GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 0, 0);
 
@@ -67,8 +63,6 @@ namespace Music_Maze
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
             GL.DrawElements(BeginMode.Triangles, totalVerts, DrawElementsType.UnsignedInt, 0);
-
-            GL.UniformMatrix4(Game.modelMatrixID, false, ref matrix);
         }
 
         //left inclusive, right exclusive
