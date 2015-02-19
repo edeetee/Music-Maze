@@ -15,8 +15,8 @@ namespace Music_Maze
             base(pos, scale, rotation)
         {
             children = new List<GameObject>(){
-                new EquationTriangle(Vector3.Zero, Vector3.One, Quaternion.Identity, colour * 0.9f, equation, depth),
-                new EquationTriangle(Vector3.Zero, new Vector3(-1, 1, -1), Quaternion.Identity, colour * 1.1f, equation, depth)
+                new EquationTriangle(Vector3.Zero, Vector3.One, Quaternion.Identity, colour, equation, depth),
+                new EquationTriangle(Vector3.Zero, new Vector3(1, 1, 1), Quaternion.FromAxisAngle(Vector3.UnitY, -(float)Math.PI), colour, equation, depth)
             };
         }
     }

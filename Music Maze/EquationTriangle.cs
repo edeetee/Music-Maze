@@ -1,11 +1,13 @@
 ﻿using OpenTK;
-using OpenTK.Graphics.OpenGL4;
+//using OpenTK.Graphics.OpenGL4;
+using OpenTK.Graphics.OpenGL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+
 
 using System.Diagnostics;
 
@@ -82,11 +84,28 @@ namespace Music_Maze
                 var b = SetVertex(corner2, mod, left + 1);
                 var c = SetVertex(corner3, mod, left + 2);
 
-                var line1 = b - a;
-                var line2 = a - c;
-                var normal = Vector3.Cross(line2, line1).Normalized();
+                var normal = Vector3.Cross(c - a, b - a).Normalized();
+                //force forward vector
+                if(Vector3.Dot(normal, Vector3.UnitY) < 0)
+                {
+                    normal *= -1;
+                }
 
-                normals.AddRange(new List<Vector3>{normal,normal,normal});
+                for(var i = 0; i < 3; i++)
+                {
+                    var normalsIndex = (int)indices[left + i];
+
+                    if (normalsIndex < normals.Count)
+                    {
+                        var q = Vector3.Add(normals[normalsIndex], normal);
+                        var z = a / 2;
+                        normals[normalsIndex] = (normals[normalsIndex] + normal) / 2;
+                    }
+                    else
+                    {
+                        normals.Add(normal);
+                    }
+                }
             }
             else
             {
@@ -106,13 +125,16 @@ namespace Music_Maze
 
         Vector3 SetVertex(Vector3 point, float mod, int i)
         {
-            Vector3 pos = new Vector3(point.X, point.Y + equation(point.X, point.Z, mod), point.Z);
+            float y = equation(point.X, point.Z, mod);
+            Vector3 pos = new Vector3(point.X, point.Y + y, point.Z);
+
+            float colourMod = (float)( -0.5f * Math.Cos(y * Math.PI) + 0.55 );
 
             uint id = (uint)vertices.IndexOf(pos);
             if(id == uint.MaxValue)
             {
                 vertices.Add(pos);
-                colours.Add(colourBase * (mod < 0.5f ? 0.5f : mod));
+                colours.Add(colourBase * colourMod);
                 id = (uint)vertices.Count - 1;
             }
 

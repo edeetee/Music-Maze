@@ -39,7 +39,8 @@ void main()
 {
     // transforming the incoming vertex position
     gl_Position = projection_matrix * view_matrix * model_matrix * vertex_position;
-    vertexColour = normal;
+
+    vertexColour = colour;
 }";
 
         string fragmentShaderSource = @"
@@ -253,12 +254,18 @@ void main()
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
+            Console.Clear();
+            Console.Write(RenderFrequency);
+
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             GL.Enable(EnableCap.DepthTest);
-            GL.Enable(EnableCap.Blend);
+            GL.Disable(EnableCap.Blend);
+            GL.Disable(EnableCap.PolygonSmooth);
 
-            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+
+            //GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
 
             foreach (GameObject element in objects)
             {
