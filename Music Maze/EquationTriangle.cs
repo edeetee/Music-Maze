@@ -27,6 +27,9 @@ namespace Music_Maze
         List<Vector3> colours;
         int coloursID;
 
+        List<Vector3> normals;
+        int normalsID;
+
         Vector3[] boundingPoints;
 
         Vector3 colourBase;
@@ -45,11 +48,13 @@ namespace Music_Maze
             vertices = new List<Vector3>();
             indices = new uint[totalVerts];
             colours = new List<Vector3>();
+            normals = new List<Vector3>();
 
             this.colourBase = colourBase;
 
             verticesID = GL.GenBuffer();
             coloursID = GL.GenBuffer();
+            normalsID = GL.GenBuffer();
             GL.GenBuffers(1, out indicesID);
         }
 
@@ -61,6 +66,9 @@ namespace Music_Maze
             GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
             GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 0, 0);
 
+            GL.BindBuffer(BufferTarget.ArrayBuffer, normalsID);
+            GL.VertexAttribPointer(3, 3, VertexAttribPointerType.Float, false, 0, 0);
+
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
             GL.DrawElements(BeginMode.Triangles, totalVerts, DrawElementsType.UnsignedInt, 0);
         }
@@ -70,9 +78,15 @@ namespace Music_Maze
         {
             if(left == right-3)
             {
-                SetVertex(corner1, mod, left);
-                SetVertex(corner2, mod, left + 1);
-                SetVertex(corner3, mod, left + 2);
+                var a = SetVertex(corner1, mod, left);
+                var b = SetVertex(corner2, mod, left + 1);
+                var c = SetVertex(corner3, mod, left + 2);
+
+                var line1 = b - a;
+                var line2 = a - c;
+                var normal = Vector3.Cross(line2, line1).Normalized();
+
+                normals.AddRange(new List<Vector3>{normal,normal,normal});
             }
             else
             {
@@ -90,7 +104,7 @@ namespace Music_Maze
             }
         }
 
-        void SetVertex(Vector3 point, float mod, int i)
+        Vector3 SetVertex(Vector3 point, float mod, int i)
         {
             Vector3 pos = new Vector3(point.X, point.Y + equation(point.X, point.Z, mod), point.Z);
 
@@ -103,6 +117,8 @@ namespace Music_Maze
             }
 
             indices[i] = id;
+
+            return pos;
         }
 
         void SplitTriangle(ref Vector3 corner1, ref Vector3 corner2, ref Vector3 corner3,
@@ -131,21 +147,32 @@ namespace Music_Maze
         {
             CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts, mod);
 
+            //vertices
             GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
             GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertices.Count * Vector3.SizeInBytes), vertices.ToArray(), BufferUsageHint.DynamicDraw);
 
             GL.EnableVertexAttribArray(1);
-
+            
+            //colours
             GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
             GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(colours.Count * Vector3.SizeInBytes), colours.ToArray(), BufferUsageHint.DynamicDraw);
 
             GL.EnableVertexAttribArray(2);
 
+            //normals
+            GL.BindBuffer(BufferTarget.ArrayBuffer, normalsID);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(normals.Count * Vector3.SizeInBytes), normals.ToArray(), BufferUsageHint.DynamicDraw);
+
+            GL.EnableVertexAttribArray(3);
+
+            //indices
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
             GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(totalVerts * sizeof(uint)), indices, BufferUsageHint.DynamicDraw);
 
+            //empty the lists
             vertices.Clear();
             colours.Clear();
+            normals.Clear();
             indices = new uint[totalVerts];
         }
     }

@@ -30,13 +30,16 @@ layout(location = 1) in vec4 vertex_position;
 //colour
 layout(location = 2) in vec3 colour;
 
+//colour
+layout(location = 3) in vec3 normal;
+
 out vec3 vertexColour;
 
 void main()
 {
     // transforming the incoming vertex position
     gl_Position = projection_matrix * view_matrix * model_matrix * vertex_position;
-    vertexColour = colour;
+    vertexColour = normal;
 }";
 
         string fragmentShaderSource = @"
