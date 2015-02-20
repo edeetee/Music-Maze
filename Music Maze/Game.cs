@@ -106,7 +106,7 @@ void main()
             modelMatrix = Matrix4.Identity;
 
             //Expression<Func<float, float, float, float>> equation1 = (x, y, mod) => (float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 2 * size);
-            Expression<Func<float, float, float, float>> equation1 = (x, y, mod) => (float)(Math.Cos(x * (1+mod)*2 / size * pi));
+            Expression<Func<float, float, float, float>> equation1 = (x, y, mod) => (float)(Math.Cos(x * Math.Round((1+mod)*2) / size * pi) * Math.Cos(y / size * pi) * mod);
 
             Expression<Func<float, float, float, float>> equation2 = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 4 * size);
 
