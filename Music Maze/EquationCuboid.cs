@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK;
+using System.Linq.Expressions;
 
 namespace Music_Maze
 {
@@ -21,15 +22,16 @@ namespace Music_Maze
 
        // float totalRot;
 
-        public EquationCuboid(Vector3 pos, Vector3 scale, Quaternion angle, int renderDepth, Func<float, float, float, float> equation, Vector3 colour) : base(pos, scale, angle)
+        public EquationCuboid(Vector3 pos, Vector3 scale, Quaternion angle, int renderDepth, Expression<Func<float, float, float, float>> equation, Vector3 colour)
+            : base(pos, scale, angle)
         {
             children = new List<GameObject>(){
-                new EquationRectangle(new Vector3(0,1,0), Vector3.One, up, renderDepth, equation, colour * 0.7f),
-                new EquationRectangle(new Vector3(0,-1,0), Vector3.One, down, renderDepth, equation, colour * 0.8f),
-                new EquationRectangle(new Vector3(0,0,1), Vector3.One, left, renderDepth, equation, colour * 0.9f),
-                new EquationRectangle(new Vector3(0,0,-1), Vector3.One, right, renderDepth, equation, colour * 1f),
-                new EquationRectangle(new Vector3(1,0,0), Vector3.One, forward, renderDepth, equation, colour * 1.1f),
-                new EquationRectangle(new Vector3(-1, 0, 0), Vector3.One, back, renderDepth, equation, colour * 1.2f)
+                new EquationRectangle(new Vector3(0,1,0), Vector3.One, up, renderDepth, equation, colour),
+                new EquationRectangle(new Vector3(0,-1,0), Vector3.One, down, renderDepth, equation, colour),
+                new EquationRectangle(new Vector3(0,0,1), Vector3.One, left, renderDepth, equation, colour),
+                new EquationRectangle(new Vector3(0,0,-1), Vector3.One, right, renderDepth, equation, colour),
+                new EquationRectangle(new Vector3(1,0,0), Vector3.One, forward, renderDepth, equation, colour),
+                new EquationRectangle(new Vector3(-1, 0, 0), Vector3.One, back, renderDepth, equation, colour)
             };
         }
     }

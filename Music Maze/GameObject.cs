@@ -11,12 +11,52 @@ namespace Music_Maze
     abstract class GameObject
     {
         public Matrix4 matrix;
+
+        Vector3 pos;
+        public Vector3 Pos
+        {
+            get { return pos; }
+            set 
+            {pos = value; UpdateMatrix(); }
+        }
+
+        Vector3 scale;
+        public Vector3 Scale
+        {
+            get { return scale; }
+            set
+            {
+                scale = value;
+                UpdateMatrix();
+            }
+        }
+
+        Quaternion rotation;
+        public Quaternion Rotation
+        {
+            get { return rotation; }
+            set
+            {
+                rotation = value;
+                UpdateMatrix();
+            }
+        }
+
         protected List<GameObject> children;
 
         protected GameObject(Vector3 pos, Vector3 scale, Quaternion rotation)
         {
-            matrix = Helper.Create(pos, scale, rotation);
+            this.pos = pos;
+            this.scale = scale;
+            this.rotation = rotation;
+
+            UpdateMatrix();
             children = new List<GameObject>();
+        }
+
+        void UpdateMatrix()
+        {
+            matrix = Helper.Create(pos, scale, rotation);
         }
 
         public void Render(FrameEventArgs e, ref Matrix4 matrix)

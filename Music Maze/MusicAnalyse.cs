@@ -31,6 +31,8 @@ namespace Music_Maze
         WaveFileReader audio;
         ISoundOut player;
 
+
+
         public MusicAnalyse(string path)
         {
             this.path = path;
@@ -39,9 +41,9 @@ namespace Music_Maze
             {
                 var decoded = new WaveDecoder(wavFile).Decode();
 
-                //signal = new WaveRectifier(true).Apply(new HighPassFilter(0.5f).Apply(decoded));
+                signal = new WaveRectifier(true).Apply(new LowPassFilter(0.9f).Apply(decoded));
                 //signal = new HighPassFilter(1f).Apply(decoded);
-                signal = new WaveRectifier(false).Apply(decoded);
+                //signal = new WaveRectifier(false).Apply(decoded);
             }
 
             //var wavFile = File.Open(path, FileMode.Open)
@@ -57,16 +59,20 @@ namespace Music_Maze
             player.Play();
         }
 
+        public int CurrentIndex()
+        {
+            var pos = (double)audio.GetPosition().TotalMilliseconds;
+            var length = (double)audio.GetLength().TotalMilliseconds;
+            var a = Math.Round(pos / length);
+
+            return (int)Math.Round( (pos / length) * signal.Length);
+        }
+
         public float CurrentMagnitude()
         {
             int radius = 3000;
 
-            var pos = (double)audio.GetPosition().TotalMilliseconds;
-            var length = (double)audio.GetLength().TotalMilliseconds;
-
-            var a = Math.Round(pos / length);
-
-            int i = (int)Math.Round(pos / length * signal.Length);
+            var i = CurrentIndex();
 
             float total = 0;
 

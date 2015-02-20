@@ -5,6 +5,7 @@ using OpenTK.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,13 +41,13 @@ void main()
     // transforming the incoming vertex position
     gl_Position = projection_matrix * view_matrix * model_matrix * vertex_position;
 
-    vertexColour = colour;
+    vertexColour = abs(normalize( mat3(model_matrix) * normal ));
 }";
 
         string fragmentShaderSource = @"
 #version 400
 
-in vec3 vertexColour;
+flat in vec3 vertexColour;
 
 void main()
 {
@@ -69,6 +70,23 @@ void main()
         Vector2 mouse;
         bool mouseLock = true;
 
+        public struct DebugTime
+        {
+            public TimeSpan time;
+            public string title;
+        }
+
+        public static DebugTime[] times = new DebugTime[]{
+            new DebugTime{time = TimeSpan.Zero, title = "Total Calc: {0}"},
+            new DebugTime{time = TimeSpan.Zero, title = "Point Calc: {0}"},
+            new DebugTime{time = TimeSpan.Zero, title = "Tri Split Calc: {0}"},
+            new DebugTime{time = TimeSpan.Zero, title = "Buffer: {0}"},
+            new DebugTime{time = TimeSpan.Zero, title = "Draw: {0}"},
+            new DebugTime{time = TimeSpan.Zero, title = "MusicCalc: {0}"},
+        };
+
+        System.Diagnostics.Stopwatch allTime;
+
         MusicAnalyse music;
 
         const float pi = (float)Math.PI;
@@ -77,28 +95,39 @@ void main()
         {
             VSync = VSyncMode.Adaptive;
 
+            allTime = new System.Diagnostics.Stopwatch();
+
             GL.Viewport(0, 0, Width, Height);
+            VSync = VSyncMode.Adaptive;
             
-            int depth = 6;
+            int depth = 8;
             float size = 2;
 
             modelMatrix = Matrix4.Identity;
 
-            Func<float, float, float, float> equation1 = (x, y, mod) => (float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod/2 * size);
+            Expression<Func<float, float, float, float>> equation1 = (x, y, mod) => (float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 2 * size);
 
-            Func<float, float, float, float> equation2 = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 4 * size);
+            Expression<Func<float, float, float, float>> equation2 = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 4 * size);
 
             //Func<float, float, float, float> equation3 = (x, y, mod) => equation2(x, y, mod) * 3;
 
-            Func<float, float, float, float> equationb = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * x * mod / 4 * size);
+            Expression<Func<float, float, float, float>> equationb = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * x * mod / 4 * size);
 
             objects = new List<GameObject>()
             {
                 new EquationCuboid(new Vector3(3,3,3), Vector3.One*2, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
 
-                new EquationCuboid(new Vector3(-3,0,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation1, new Vector3(0,0,1)),
+                new EquationCuboid(Vector3.Zero, Vector3.One*200, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
 
-                new EquationCuboid(new Vector3(1,0,0), Vector3.One, Quaternion.Identity, depth, equation1, new Vector3(1,1,0)),
+                new EquationCuboid(new Vector3(222,0,0), Vector3.One*2, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
+
+                new EquationCuboid(new Vector3(0,222,0), Vector3.One*2, Quaternion.Identity, depth, equation2, new Vector3(0,1,1)),
+
+                new EquationCuboid(Vector3.Zero, Vector3.One*2, Quaternion.FromAxisAngle(new Vector3(1,1,0), 1f), depth, equation2, new Vector3(0,1,1)),
+
+                new EquationCuboid(new Vector3(-3,-3,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation1, new Vector3(0,0,1)),
+
+                new EquationCuboid(new Vector3(5,-1,0), Vector3.One, Quaternion.FromAxisAngle(new Vector3(1,-1,0), 1f), depth, equation1, new Vector3(1,1,0)),
 
                 new EquationCuboid(Vector3.Zero, Vector3.One*20, Quaternion.Identity, depth, equation2, new Vector3(1,0,1))
             };
@@ -131,6 +160,8 @@ void main()
             viewMatrixID = GL.GetUniformLocation(programID, "view_matrix");
             projectionMatrixID = GL.GetUniformLocation(programID, "projection_matrix");
             modelMatrixID = GL.GetUniformLocation(programID, "model_matrix");
+
+            allTime.Start();
 
             foreach (GameObject element in objects)
             {
@@ -211,20 +242,34 @@ void main()
         {
             var state = OpenTK.Input.Keyboard.GetState();
 
+            var calculatedMoveSpeed = moveSpeed;
+
+            if (state[Key.LShift])
+                calculatedMoveSpeed *= 5;
+
             if (state[Key.W])
-                pos += forward * moveSpeed;
+                pos += forward * calculatedMoveSpeed;
             if (state[Key.S])
-                pos -= forward * moveSpeed;
+                pos -= forward * calculatedMoveSpeed;
             if (state[Key.A])
-                pos -= right * moveSpeed;
+                pos -= right * calculatedMoveSpeed;
             if (state[Key.D])
-                pos += right * moveSpeed;
+                pos += right * calculatedMoveSpeed;
             if (state[Key.Space])
-                pos += up * moveSpeed;
+                pos += up * calculatedMoveSpeed;
 
             SetModelview();
 
+            var start = new System.Diagnostics.Stopwatch();
+            start.Start();
+
             var curMod = music.CurrentMagnitude();
+
+            times[5].time += start.Elapsed;
+
+            var obj = objects.Last();
+
+            obj.Rotation *= Quaternion.FromAxisAngle(new Vector3(1, 1, 0)+obj.Rotation.Xyz, curMod/50);
 
             foreach(GameObject element in objects)
             {
@@ -254,14 +299,13 @@ void main()
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
-            Console.Clear();
-            Console.Write(RenderFrequency);
-
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             GL.Enable(EnableCap.DepthTest);
             GL.Disable(EnableCap.Blend);
             GL.Disable(EnableCap.PolygonSmooth);
+
+            GL.BlendFunc(BlendingFactorSrc.SrcAlphaSaturate, BlendingFactorDest.Src1Color);
 
             GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 
@@ -274,6 +318,13 @@ void main()
             }
 
             SwapBuffers();
+
+            Console.Clear();
+            foreach (var time in times)
+            {
+                Console.WriteLine(time.title, (time.time.TotalMilliseconds / allTime.Elapsed.TotalMilliseconds));
+            }
+            Console.WriteLine("FPS: {0}", RenderFrequency);
         }
     }
 }

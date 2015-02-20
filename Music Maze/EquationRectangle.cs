@@ -6,12 +6,13 @@ using System.Threading.Tasks;
 
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
+using System.Linq.Expressions;
 
 namespace Music_Maze
 {
     class EquationRectangle : GameObject
     {
-        public EquationRectangle(Vector3 pos, Vector3 scale, Quaternion rotation, int depth, Func<float, float, float, float> equation, Vector3 colour) : 
+        public EquationRectangle(Vector3 pos, Vector3 scale, Quaternion rotation, int depth, Expression<Func<float, float, float, float>> equation, Vector3 colour) : 
             base(pos, scale, rotation)
         {
             children = new List<GameObject>(){

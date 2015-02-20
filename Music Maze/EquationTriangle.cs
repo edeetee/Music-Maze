@@ -1,6 +1,5 @@
 ﻿using OpenTK;
-//using OpenTK.Graphics.OpenGL4;
-using OpenTK.Graphics.OpenGL;
+using OpenTK.Graphics.OpenGL4;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,69 +9,90 @@ using System.Collections.Concurrent;
 
 
 using System.Diagnostics;
+using System.Linq.Expressions;
 
 namespace Music_Maze
 {
+    struct TriData
+    {
+        public int verticesID;
+        public int coloursID;
+        public int normalsID;
+    }
+
     class EquationTriangle : GameObject
     {
         Func<float, float, float, float> equation;
         int depth;
 
         int totalVerts;
+        IntPtr bufferSize;
 
-        List<Vector3> vertices;
-        int verticesID;
+        Vector3[] vertices;
+        Vector3[] colours;
+        Vector3[] normals;
 
-        uint[] indices;
-        uint indicesID;
+        static Dictionary<string, TriData> datas = new Dictionary<string, TriData>();
 
-        List<Vector3> colours;
-        int coloursID;
+        TriData data { get { return datas[key]; } }
 
-        List<Vector3> normals;
-        int normalsID;
+        string key;
+
+        bool isControl = false;
 
         Vector3[] boundingPoints;
 
         Vector3 colourBase;
 
 
-        public EquationTriangle(Vector3 pos, Vector3 scale, Quaternion rotation, Vector3 colourBase, Func<float, float, float, float> equation, int depth = 1) : 
+        public EquationTriangle(Vector3 pos, Vector3 scale, Quaternion rotation, Vector3 colourBase, Expression<Func<float, float, float, float>> equation, int depth = 1) : 
             base(pos, scale, rotation)
         {
             boundingPoints = new Vector3[] { new Vector3(1, 0, -1), new Vector3(-1, 0, -1), new Vector3(-1, 0, 1) };
 
-            this.equation = equation;
+            key = equation.ToString() + colourBase.ToString() + depth.ToString();
+
+            this.equation = equation.Compile();
             this.depth = depth;
 
             totalVerts = (int)Math.Pow(2, depth) * 3;
+            bufferSize = (IntPtr) (totalVerts * Vector3.SizeInBytes);
 
-            vertices = new List<Vector3>();
-            indices = new uint[totalVerts];
-            colours = new List<Vector3>();
-            normals = new List<Vector3>();
+            vertices = new Vector3[totalVerts];
+            colours = new Vector3[totalVerts];
+            normals = new Vector3[totalVerts];
 
             this.colourBase = colourBase;
 
-            verticesID = GL.GenBuffer();
-            coloursID = GL.GenBuffer();
-            normalsID = GL.GenBuffer();
-            GL.GenBuffers(1, out indicesID);
+            if(!datas.ContainsKey(key))
+            {
+                isControl = true;
+                datas[key] = new TriData
+                {
+                    verticesID = GL.GenBuffer(),
+                    coloursID = GL.GenBuffer(),
+                    normalsID = GL.GenBuffer()
+                };
+            }
         }
 
         protected override void Draw() 
         {
-            GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
+            var start = new Stopwatch();
+            start.Start();
+            
+            GL.BindBuffer(BufferTarget.ArrayBuffer, data.verticesID);
             GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 0, 0);
 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, data.coloursID);
             GL.VertexAttribPointer(2, 3, VertexAttribPointerType.Float, false, 0, 0);
 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, normalsID);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, data.normalsID);
             GL.VertexAttribPointer(3, 3, VertexAttribPointerType.Float, false, 0, 0);
 
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
-            GL.DrawElements(BeginMode.Triangles, totalVerts, DrawElementsType.UnsignedInt, 0);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, totalVerts);
+            
+            Game.times[4].time += start.Elapsed;
         }
 
         //left inclusive, right exclusive
@@ -80,9 +100,14 @@ namespace Music_Maze
         {
             if(left == right-3)
             {
+                var start = new Stopwatch();
+                start.Start();
+
                 var a = SetVertex(corner1, mod, left);
                 var b = SetVertex(corner2, mod, left + 1);
                 var c = SetVertex(corner3, mod, left + 2);
+
+                Game.times[1].time += start.Elapsed;
 
                 var normal = Vector3.Cross(c - a, b - a).Normalized();
                 //force forward vector
@@ -93,18 +118,7 @@ namespace Music_Maze
 
                 for(var i = 0; i < 3; i++)
                 {
-                    var normalsIndex = (int)indices[left + i];
-
-                    if (normalsIndex < normals.Count)
-                    {
-                        var q = Vector3.Add(normals[normalsIndex], normal);
-                        var z = a / 2;
-                        normals[normalsIndex] = (normals[normalsIndex] + normal) / 2;
-                    }
-                    else
-                    {
-                        normals.Add(normal);
-                    }
+                    normals[left + i] = normal;
                 }
             }
             else
@@ -114,7 +128,12 @@ namespace Music_Maze
                 Vector3 tri1;
                 Vector3 tri2;
 
+                var start = new Stopwatch();
+                start.Start();
+
                 SplitTriangle(ref corner1, ref corner2, ref corner3, out median, out  middle, out tri1, out tri2);
+
+                Game.times[2].time += start.Elapsed;
 
                 int mid = left + (right-left) / 2;
 
@@ -128,17 +147,8 @@ namespace Music_Maze
             float y = equation(point.X, point.Z, mod);
             Vector3 pos = new Vector3(point.X, point.Y + y, point.Z);
 
-            float colourMod = (float)( -0.5f * Math.Cos(y * Math.PI) + 0.55 );
-
-            uint id = (uint)vertices.IndexOf(pos);
-            if(id == uint.MaxValue)
-            {
-                vertices.Add(pos);
-                colours.Add(colourBase * colourMod);
-                id = (uint)vertices.Count - 1;
-            }
-
-            indices[i] = id;
+            vertices[i] = pos;
+            colours[i] = colourBase;
 
             return pos;
         }
@@ -167,35 +177,38 @@ namespace Music_Maze
 
         public override void Buffer(float mod)
         {
-            CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts, mod);
+            if(isControl)
+            {
+                var start = new Stopwatch();
+                start.Start();
 
-            //vertices
-            GL.BindBuffer(BufferTarget.ArrayBuffer, verticesID);
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(vertices.Count * Vector3.SizeInBytes), vertices.ToArray(), BufferUsageHint.DynamicDraw);
+                CalculatePoints(ref boundingPoints[0], ref boundingPoints[1], ref boundingPoints[2], 0, totalVerts, mod);
 
-            GL.EnableVertexAttribArray(1);
-            
-            //colours
-            GL.BindBuffer(BufferTarget.ArrayBuffer, coloursID);
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(colours.Count * Vector3.SizeInBytes), colours.ToArray(), BufferUsageHint.DynamicDraw);
+                Game.times[0].time += start.Elapsed;
 
-            GL.EnableVertexAttribArray(2);
+                var start1 = new Stopwatch();
+                start1.Start();
 
-            //normals
-            GL.BindBuffer(BufferTarget.ArrayBuffer, normalsID);
-            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(normals.Count * Vector3.SizeInBytes), normals.ToArray(), BufferUsageHint.DynamicDraw);
+                //vertices
+                GL.BindBuffer(BufferTarget.ArrayBuffer, data.verticesID);
+                GL.BufferData(BufferTarget.ArrayBuffer, bufferSize, vertices, BufferUsageHint.DynamicDraw);
 
-            GL.EnableVertexAttribArray(3);
+                GL.EnableVertexAttribArray(1);
 
-            //indices
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, indicesID);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(totalVerts * sizeof(uint)), indices, BufferUsageHint.DynamicDraw);
+                //colours
+                GL.BindBuffer(BufferTarget.ArrayBuffer, data.coloursID);
+                GL.BufferData(BufferTarget.ArrayBuffer, bufferSize, colours, BufferUsageHint.DynamicDraw);
 
-            //empty the lists
-            vertices.Clear();
-            colours.Clear();
-            normals.Clear();
-            indices = new uint[totalVerts];
+                GL.EnableVertexAttribArray(2);
+
+                //normals
+                GL.BindBuffer(BufferTarget.ArrayBuffer, data.normalsID);
+                GL.BufferData(BufferTarget.ArrayBuffer, bufferSize, normals, BufferUsageHint.DynamicDraw);
+
+                GL.EnableVertexAttribArray(3);
+
+                Game.times[3].time += start1.Elapsed;
+            }
         }
     }
 }
