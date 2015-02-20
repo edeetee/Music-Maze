@@ -100,7 +100,7 @@ void main()
             GL.Viewport(0, 0, Width, Height);
             VSync = VSyncMode.Adaptive;
             
-            int depth = 8;
+            int depth = 10;
             float size = 2;
 
             modelMatrix = Matrix4.Identity;
@@ -323,7 +323,7 @@ void main()
             Console.Clear();
             foreach (var time in times)
             {
-                Console.WriteLine(time.title, (time.time.TotalMilliseconds / allTime.Elapsed.TotalMilliseconds));
+                Console.WriteLine(time.title, (int)Math.Round(time.time.TotalMilliseconds / allTime.Elapsed.TotalMilliseconds));
             }
             Console.WriteLine("FPS: {0}", RenderFrequency);
         }
