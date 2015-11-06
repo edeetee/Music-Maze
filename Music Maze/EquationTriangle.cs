@@ -40,7 +40,7 @@ namespace Music_Maze
 
         bool isControl = false;
 
-        Vector3[] boundingPoints;
+        Vector2[] boundingPoints = new Vector2[] { new Vector2(1, -1), new Vector2(-1, -1), new Vector2(-1, 1) };
 
         Vector3 colourBase;
 
@@ -48,14 +48,12 @@ namespace Music_Maze
         public EquationTriangle(Vector3 pos, Vector3 scale, Quaternion rotation, Vector3 colourBase, Expression<Func<float, float, float, float>> equation, int depth = 1) : 
             base(pos, scale, rotation)
         {
-            boundingPoints = new Vector3[] { new Vector3(1, 0, -1), new Vector3(-1, 0, -1), new Vector3(-1, 0, 1) };
-
             key = equation.ToString() + colourBase.ToString() + depth.ToString();
 
             this.equation = equation.Compile();
             this.depth = depth;
 
-            totalVerts = (int)Math.Pow(2, depth) * 3;
+            totalVerts = (1<<depth) * 3;
             bufferSize = (IntPtr) (totalVerts * Vector3.SizeInBytes);
 
             vertices = new Vector3[totalVerts];
@@ -96,9 +94,9 @@ namespace Music_Maze
         }
 
         //left inclusive, right exclusive
-        void CalculatePoints(ref Vector3 corner1, ref Vector3 corner2, ref Vector3 corner3, int left, int right, float mod)
-        {
-            if(left == right-3)
+        void CalculatePoints(ref Vector2 corner1, ref Vector2 corner2, ref Vector2 corner3, int left, int right, float mod)
+       { open
+            if(right - left == 3*(1<<depth))
             {
                 var start = new Stopwatch();
                 start.Start();
@@ -123,10 +121,10 @@ namespace Music_Maze
             }
             else
             {
-                Vector3 median;
-                Vector3 middle;
-                Vector3 tri1;
-                Vector3 tri2;
+                Vector2 median;
+                Vector2 middle;
+                Vector2 tri1;
+                Vector2 tri2;
 
                 var start = new Stopwatch();
                 start.Start();
@@ -142,10 +140,10 @@ namespace Music_Maze
             }
         }
 
-        Vector3 SetVertex(Vector3 point, float mod, int i)
+        Vector3 SetVertex(Vector2 point, float mod, int i)
         {
-            float y = equation(point.X, point.Z, mod);
-            Vector3 pos = new Vector3(point.X, point.Y + y, point.Z);
+            float y = equation(point.X, point.Y, mod);
+            Vector3 pos = new Vector3(point.X, y, point.Y);
 
             vertices[i] = pos;
             colours[i] = colourBase;
@@ -153,11 +151,11 @@ namespace Music_Maze
             return pos;
         }
 
-        void SplitTriangle(ref Vector3 corner1, ref Vector3 corner2, ref Vector3 corner3,
-            out Vector3 median, out Vector3 middle, out Vector3 newCorner1, out Vector3 newCorner2)
+        void SplitTriangle(ref Vector2 corner1, ref Vector2 corner2, ref Vector2 corner3,
+            out Vector2 median, out Vector2 middle, out Vector2 newCorner1, out Vector2 newCorner2)
         {
-            Vector3[] diff = new Vector3[]{(corner2-corner1), (corner3-corner2), (corner1-corner3)};
-            Vector3[] verts = new Vector3[] { corner1, corner2, corner3 };
+            Vector2[] diff = new Vector2[] { (corner2 - corner1), (corner3 - corner2), (corner1 - corner3) };
+            Vector2[] verts = new Vector2[] { corner1, corner2, corner3 };
             int maxI = 0;
 
             for(int i = 0; i < 3; i++)

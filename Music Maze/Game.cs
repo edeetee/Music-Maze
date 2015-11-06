@@ -13,47 +13,6 @@ namespace Music_Maze
 {
     class Game : GameWindow
     {
-        string vertexShaderSource = @"
-#version 400
-
-// incoming delta matrix for model matrix
-uniform mat4 model_matrix;
- 
-// object space to camera space transformation
-uniform mat4 view_matrix;
- 
-// camera space to clip coordinates
-uniform mat4 projection_matrix;
- 
-// incoming vertex position
-layout(location = 1) in vec4 vertex_position;
-
-//colour
-layout(location = 2) in vec3 colour;
-
-//colour
-layout(location = 3) in vec3 normal;
-
-out vec3 vertexColour;
-
-void main()
-{
-    // transforming the incoming vertex position
-    gl_Position = projection_matrix * view_matrix * model_matrix * vertex_position;
-
-    vertexColour = abs(normalize( mat3(model_matrix) * normal ));
-}";
-
-        string fragmentShaderSource = @"
-#version 400
-
-flat in vec3 vertexColour;
-
-void main()
-{
-    gl_FragColor = vec4(vertexColour, 1.0);
-}";
-
         public static int programID, modelMatrixID, viewMatrixID, projectionMatrixID;
 
         float lookSpeed = 1f;
@@ -62,7 +21,7 @@ void main()
 
         Matrix4 modelMatrix;
 
-        Vector3 pos;
+        public static Vector3 pos;
         Vector3 forward;
         Vector3 right;
         Vector3 up;
@@ -74,18 +33,23 @@ void main()
         {
             public TimeSpan time;
             public string title;
+
+            public override string ToString()
+            {
+                return String.Format(title, (int)(time.TotalMilliseconds/Game.allTime.ElapsedMilliseconds*100));
+            }
         }
 
         public static DebugTime[] times = new DebugTime[]{
-            new DebugTime{time = TimeSpan.Zero, title = "Total Calc: {0}"},
-            new DebugTime{time = TimeSpan.Zero, title = "Point Calc: {0}"},
-            new DebugTime{time = TimeSpan.Zero, title = "Tri Split Calc: {0}"},
-            new DebugTime{time = TimeSpan.Zero, title = "Buffer: {0}"},
-            new DebugTime{time = TimeSpan.Zero, title = "Draw: {0}"},
-            new DebugTime{time = TimeSpan.Zero, title = "MusicCalc: {0}"},
+            new DebugTime{time = TimeSpan.Zero, title = "Total Calc: {0}%"},
+            new DebugTime{time = TimeSpan.Zero, title = "Point Calc: {0}%"},
+            new DebugTime{time = TimeSpan.Zero, title = "Tri Split Calc: {0}%"},
+            new DebugTime{time = TimeSpan.Zero, title = "Buffer: {0}%"},
+            new DebugTime{time = TimeSpan.Zero, title = "Draw: {0}%"},
+            new DebugTime{time = TimeSpan.Zero, title = "MusicCalc: {0}%"},
         };
 
-        System.Diagnostics.Stopwatch allTime;
+        static System.Diagnostics.Stopwatch allTime;
 
         MusicAnalyse music;
 
@@ -105,12 +69,7 @@ void main()
 
             modelMatrix = Matrix4.Identity;
 
-            //Expression<Func<float, float, float, float>> equation1 = (x, y, mod) => (float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 2 * size);
-            Expression<Func<float, float, float, float>> equation1 = (x, y, mod) => (float)(Math.Cos(x * Math.Round((1+mod)*2) / size * pi) * Math.Cos(y / size * pi) * mod);
-
             Expression<Func<float, float, float, float>> equation2 = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * mod / 4 * size);
-
-            //Func<float, float, float, float> equation3 = (x, y, mod) => equation2(x, y, mod) * 3;
 
             Expression<Func<float, float, float, float>> equationb = (x, y, mod) => -(float)((Cos(x / size * pi) * Cos(y / size * pi)) * x * mod / 4 * size);
 
@@ -126,9 +85,9 @@ void main()
 
                 new EquationCuboid(Vector3.Zero, Vector3.One*2, Quaternion.FromAxisAngle(new Vector3(1,1,0), 1f), depth, equation2, new Vector3(0,1,1)),
 
-                new EquationCuboid(new Vector3(-3,-3,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation1, new Vector3(0,0,1)),
+                new EquationCuboid(new Vector3(-3,-3,-3), new Vector3(0.5f, 1, 0.5f), Quaternion.Identity, depth, equation2, new Vector3(0,0,1)),
 
-                new EquationCuboid(new Vector3(5,-1,0), Vector3.One, Quaternion.FromAxisAngle(new Vector3(1,-1,0), 1f), depth, equation1, new Vector3(1,1,0)),
+                new EquationCuboid(new Vector3(5,-1,0), Vector3.One, Quaternion.FromAxisAngle(new Vector3(1,-1,0), 1f), depth, equation2, new Vector3(1,1,0)),
 
                 new EquationCuboid(Vector3.Zero, Vector3.One*20, Quaternion.Identity, depth, equation2, new Vector3(1,0,1))
             };
@@ -151,8 +110,8 @@ void main()
         {
             programID = GL.CreateProgram();
 
-            LoadShader(vertexShaderSource, ShaderType.VertexShader);
-            LoadShader(fragmentShaderSource, ShaderType.FragmentShader);
+            LoadShader(System.IO.File.ReadAllText("Shaders/vertex_shader.c"), ShaderType.VertexShader);
+            LoadShader(System.IO.File.ReadAllText("Shaders/fragment_shader.c"), ShaderType.FragmentShader);
 
             GL.LinkProgram(programID);
             GL.ValidateProgram(programID);
@@ -323,7 +282,7 @@ void main()
             Console.Clear();
             foreach (var time in times)
             {
-                Console.WriteLine(time.title, (int)Math.Round(time.time.TotalMilliseconds / allTime.Elapsed.TotalMilliseconds));
+                Console.WriteLine(time);
             }
             Console.WriteLine("FPS: {0}", RenderFrequency);
         }

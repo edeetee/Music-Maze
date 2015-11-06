@@ -77,10 +77,7 @@ namespace Music_Maze
             GL.UniformMatrix4(Game.modelMatrixID, false, ref matrix);
         }
 
-        protected virtual void Draw()
-        {
-
-        }
+        protected virtual void Draw() { }
 
         public virtual void Buffer(float mod)
         {
